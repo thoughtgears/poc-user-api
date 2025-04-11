@@ -1,0 +1,7 @@
+.idea
+**/node_modules
+.vscode
+**/.terraform
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/.terraform.locl.hcl
