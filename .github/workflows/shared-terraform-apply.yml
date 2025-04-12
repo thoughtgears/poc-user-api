@@ -12,12 +12,6 @@ on:
       terraform_state_bucket:
         required: true
         type: string
-      service_name:
-        required: true
-        type: string
-      repository:
-        required: true
-        type: string
       wif_provider:
         required: true
         type: string
@@ -58,6 +52,15 @@ jobs:
         with:
           terraform_version: "1.11.4"
 
+      - name: Get Service and Repository Name
+        id: get-service-repo
+        working-directory: .
+        run: |
+          SERVICE_NAME=$(jq -r '.name' package.json)
+          REPOSITORY_NAME=$(echo "$GITHUB_REPOSITORY" | cut -d '/' -f 2)
+          echo "service_name=${SERVICE_NAME}" >> $GITHUB_OUTPUT
+          echo "repository_name=${REPOSITORY_NAME}" >> $GITHUB_OUTPUT
+
       - name: Download Terraform Plan
         uses: actions/download-artifact@v4
         with:
@@ -69,7 +72,7 @@ jobs:
         working-directory: .infrastructure
         run: |
           cat <<EOF > terraform.tfvars
-          repository_name      = "${{ inputs.repository }}"
+          repository_name      = "${{ env.repository_name }}"
           project_id           = "${{ inputs.gcp_project_id }}"
           region               = "${{ inputs.gcp_region }}"
           EOF
@@ -83,7 +86,7 @@ jobs:
           terraform {
             backend "gcs" {
               bucket = "${{ inputs.terraform_state_bucket}}"
-              prefix = "${{ inputs.service_name}}"
+              prefix = "${{ env.service_name}}"
             }
           }
           EOF
