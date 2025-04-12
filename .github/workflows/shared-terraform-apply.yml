@@ -15,12 +15,22 @@ on:
       wif_sa:
         required: true
         type: string
+    outputs:
+      apply_result:
+        description: "Results from terraform apply in JSON format"
+        value: ${{ jobs.apply.outputs.apply_json }}
+      apply_outcome:
+        description: "Outcome of terraform apply"
+        value: ${{ jobs.apply.outputs.apply_outcome }}
 
 
 jobs:
   apply:
     name: Terraform Apply
     runs-on: ubuntu-latest
+    outputs:
+      apply_json: ${{ steps.parse_output.outputs.apply_json }}
+      apply_outcome: ${{ steps.apply.outcome }
 
     permissions:
       contents: read
@@ -67,4 +77,18 @@ jobs:
 
       - name: Terraform Apply
         working-directory: .infrastructure
-        run: terraform apply tf.plan
+        run: |
+          terraform apply tf.plan
+          terraform output -json > apply_output.json
+
+      - name: Parse Terraform Output
+        id: parse_output
+        working-directory: .infrastructure
+        run: |
+          if [ -f apply_output.json ]; then
+            # Escape newlines and quotes for GitHub Actions
+            APPLY_JSON=$(cat apply_output.json | jq -c .)
+            echo "apply_json=${APPLY_JSON}" >> $GITHUB_OUTPUT
+          else
+            echo "apply_json={}" >> $GITHUB_OUTPUT
+          fi
