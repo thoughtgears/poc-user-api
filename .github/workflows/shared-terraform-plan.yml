@@ -1,0 +1,135 @@
+name: Terraform Plan
+
+on:
+  workflow_call:
+    inputs:
+      gcp_project_id:
+        required: true
+        type: string
+      gcp_region:
+        required: true
+        type: string
+      wif_provider:
+        required: true
+        type: string
+      wif_sa:
+        required: true
+        type: string
+
+jobs:
+  plan:
+    name: Terraform Init & Plan
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Authenticate with Google Cloud
+        id: gcp-auth
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ inputs.gcp_project_id }}
+          workload_identity_provider: ${{ inputs.wif_provider }}
+          service_account: ${{ inputs.wif_sa }}
+
+      - name: Set up Terraform
+        id: setup-terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.11.4"
+
+
+      - name: Create terraform.tfvars file
+        id: create-tfvars
+        working-directory: .infrastructure
+        run: |
+          cat <<EOF > terraform.tfvars
+          repository_name      = "${{ github.repository }}"
+          project_id           = "${{ inputs.gcp_project_id }}"
+          region               = "${{ inputs.gcp_region }}"
+          EOF
+          terraform fmt terraform.tfvars
+
+      - name: Terraform Init
+        id: init
+        working-directory: .infrastructure
+        run: terraform init
+
+      - name: Terraform Validate
+        id: validate
+        working-directory: .infrastructure
+        run: terraform validate -no-color
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: .infrastructure
+        run: terraform plan -out=tf.plan -no-color
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
+
+      - uses: actions/github-script@v7
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            })
+            const botComment = comments.find(comment => {
+              return comment.user.type === 'Bot' && comment.body.includes('Terraform Format and Style')
+            })
+            
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            <details><summary>Validation Output</summary>
+            
+            \`\`\`\n
+            ${{ steps.validate.outputs.stdout }}
+            \`\`\`
+            
+            </details>
+            
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+            
+            <details><summary>Show Plan</summary>
+            
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+            
+            </details>
+            
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.tf_actions_working_dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            
+            if (botComment) {
+              github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: output
+              })
+            } else {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output
+              })
+            }
+
+      - name: Upload Terraform Plan
+        id: upload-tf-plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tf-plan
+          path: .infrastructure/tf.plan
