@@ -1,31 +1,23 @@
-# Should be imported by global or gotten from spacelift
-locals {
-  project_id = "shared-services-47252"
-  region     = "europe-west1"
+module "artifact_registry" {
+  source = "./modules/artifact_repository"
+
+  project_id  = var.project_id
+  location_id = var.region
+  name        = var.repository_name
+  environment = "shared"
+
+  read_permissions = [
+    "user:jens.skott@thoughtgears.co.uk"
+  ]
+
+  push_permissions = [
+    "serviceAccount:wif-gha-${var.repository_name}@shared-services-47252.iam.gserviceaccount.com"
+  ]
 }
 
-resource "google_artifact_registry_repository" "this" {
-  project       = local.project_id
-  format        = "DOCKER"
-  repository_id = "user-api"
-  location      = local.region
-}
+module "firestore" {
+  source = "./modules/firestore"
 
-resource "google_firestore_database" "this" {
-  project                           = local.project_id
-  location_id                       = local.region
-  name                              = "(default)"
-  type                              = "FIRESTORE_NATIVE"
-  concurrency_mode                  = "OPTIMISTIC"
-  point_in_time_recovery_enablement = "POINT_IN_TIME_RECOVERY_ENABLED"
-  delete_protection_state           = "DELETE_PROTECTION_ENABLED"
-  deletion_policy                   = "ABANDON"
-}
-
-resource "google_firestore_backup_schedule" "this" {
-  project   = local.project_id
-  database  = google_firestore_database.this.name
-  retention = "8467200s"
-
-  daily_recurrence {}
+  project_id  = var.project_id
+  location_id = var.region
 }

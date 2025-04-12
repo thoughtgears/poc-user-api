@@ -1,0 +1,67 @@
+name: Terraform Apply
+
+on:
+  workflow_call:
+    inputs:
+      gcp_project_id:
+        required: true
+        type: string
+      gcp_region:
+        required: true
+        type: string
+      wif_provider:
+        required: true
+        type: string
+      wif_sa:
+        required: true
+        type: string
+
+
+jobs:
+  apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Authenticate with Google Cloud
+        id: gcp-auth
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ inputs.gcp_project_id }}
+          workload_identity_provider: ${{ inputs.wif_provider }}
+          service_account: ${{ inputs.wif_sa }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.11.4"
+
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tf-plan
+          path: .
+
+      - name: Create terraform.tfvars file
+        id: create-tfvars
+        run: |
+          cat <<EOF > terraform.tfvars
+          repository_name      = "${{ github.repository }}"
+          project_id           = "${{ inputs.gcp_project_id }}"
+          region               = "${{ inputs.gcp_region }}"
+          EOF
+          terraform fmt terraform.tfvars
+
+      - name: Terraform Init
+        id: terraform-init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply tf.plan
