@@ -56,6 +56,15 @@ jobs:
           REPOSITORY_NAME=$(echo "$GITHUB_REPOSITORY" | cut -d '/' -f 2)
           echo "service_name=${SERVICE_NAME}" >> $GITHUB_OUTPUT
           echo "repository_name=${REPOSITORY_NAME}" >> $GITHUB_OUTPUT
+          
+
+      - name: Check Service and Repository Name
+        id: check-service-repo
+        run: |
+          echo "Service Name: ${{ steps.get-service-repo.outputs.service_name }}"
+          echo "Repository Name: ${{ steps.get-service-repo.outputs.repository_name }}"
+          echo "Service Name: ${{ env.service_name }}"
+          echo "Repository Name: ${{ env.repository_name }}"
 
 
       - name: Create terraform.tfvars file
