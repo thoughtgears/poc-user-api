@@ -42,7 +42,7 @@ jobs:
       contents: read
       id-token: write
     outputs:
-      digest: ${{ steps.build-push.outputs.digest }}
+      digest: ${{ steps.build-and-push.outputs.digest }}
 
     steps:
       - name: Checkout code

@@ -111,13 +111,23 @@ jobs:
       docker_repo: ${{ needs.fetch-terraform-outputs.outputs.docker_repo }}
 
   post-build:
-    needs: docker-build
+    needs: [docker-build, fetch-terraform-outputs]
     runs-on: ubuntu-latest
     steps:
       - name: Use Docker image digest
         run: |
+          # Get service name
+          SERVICE_NAME=$(jq -r '.name' package.json)
+          
           echo "Docker image digest: ${{ needs.docker-build.outputs.digest }}"
-
-          # Store digest for later use
+          
+          # Store values in environment variables
           echo "DOCKER_IMAGE_DIGEST=${{ needs.docker-build.outputs.digest }}" >> $GITHUB_ENV
-          echo "IMAGE=${{ needs.docker-build.outputs.docker_repo }}/${{ env.SERVICE_NAME }}@${{ needs.docker-build.outputs.digest }}" >> $GITHUB_ENV
+          echo "SERVICE_NAME=${SERVICE_NAME}" >> $GITHUB_ENV
+          echo "DOCKER_REPO=${{ needs.fetch-terraform-outputs.outputs.docker_repo }}" >> $GITHUB_ENV
+          
+          # Create full image reference with digest
+          echo "IMAGE=${{ needs.fetch-terraform-outputs.outputs.docker_repo }}/${SERVICE_NAME}@${{ needs.docker-build.outputs.digest }}" >> $GITHUB_ENV
+          
+          # Debug output
+          echo "Full image reference: ${{ needs.fetch-terraform-outputs.outputs.docker_repo }}/${SERVICE_NAME}@${{ needs.docker-build.outputs.digest }}"
