@@ -109,7 +109,6 @@ jobs:
       wif_provider: ${{ vars.WIF_PROVIDER }}
       wif_sa: ${{ vars.WIF_SA }}
       docker_repo: ${{ needs.fetch-terraform-outputs.outputs.docker_repo }}
-    secrets: inherit
 
   post-build:
     needs: docker-build
@@ -121,4 +120,4 @@ jobs:
 
           # Store digest for later use
           echo "DOCKER_IMAGE_DIGEST=${{ needs.docker-build.outputs.digest }}" >> $GITHUB_ENV
-          echo "IMAGE=${{ needs.docker-build.outputs.docker_repo }}/${{ env.SERVICE_NAME }}:${{ needs.docker-build.outputs.digest }}" >> $GITHUB_ENV
+          echo "IMAGE=${{ needs.docker-build.outputs.docker_repo }}/${{ env.SERVICE_NAME }}@${{ needs.docker-build.outputs.digest }}" >> $GITHUB_ENV
