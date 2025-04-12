@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - .infrastructure/*
+      - .infrastructure/**/*.tf
       - .github/workflows/terraform.yml
       - .github/workflows/shared-terraform-*.yml
   pull_request:
