@@ -44,7 +44,6 @@ jobs:
     steps:
       - name: Use Terraform Output
         run: |
-          echo "Terraform apply outcome was ${{ needs.apply.outputs.apply_outcome }}"
           echo "Terraform apply output: ${{ needs.apply.outputs.apply_result }}"
 
           # Parse the JSON and use specific values

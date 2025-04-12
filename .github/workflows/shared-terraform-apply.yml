@@ -19,9 +19,6 @@ on:
       apply_result:
         description: "Results from terraform apply in JSON format"
         value: ${{ jobs.apply.outputs.apply_json }}
-      apply_outcome:
-        description: "Outcome of terraform apply"
-        value: ${{ jobs.apply.outputs.apply_outcome }}
 
 
 jobs:
@@ -30,7 +27,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       apply_json: ${{ steps.parse_output.outputs.apply_json }}
-      apply_outcome: ${{ steps.apply.outcome }
 
     permissions:
       contents: read
