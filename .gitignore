@@ -6,3 +6,4 @@
 **/terraform.tfstate.backup
 **/.terraform.locl.hcl
 **/terraform.tfvars
+**/backend.tf

@@ -16,6 +16,10 @@ on:
       - .github/workflows/terraform.yml
       - .github/workflows/shared-terraform-*.yml
 
+env:
+  SERVICE_NAME: poc-user-api
+  REPOSITORY_NAME: poc-user-api
+
 jobs:
   plan:
     uses: ./.github/workflows/shared-terraform-plan.yml
@@ -23,6 +27,9 @@ jobs:
     with:
       gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
       gcp_region: ${{ vars.GCP_REGION }}
+      terraform_state_bucket: ${{ vars.TERRAFORM_STATE_BUCKET }}
+      repository: ${{ env.REPOSITORY_NAME }}
+      service_name: ${{ env.SERVICE_NAME }}
       wif_provider: ${{ vars.WIF_PROVIDER }}
       wif_sa: ${{ vars.WIF_SA }}
 
@@ -34,6 +41,9 @@ jobs:
     with:
       gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
       gcp_region: ${{ vars.GCP_REGION }}
+      terraform_state_bucket: ${{ vars.TERRAFORM_STATE_BUCKET }}
+      repository: ${{ env.REPOSITORY_NAME }}
+      service_name: ${{ env.SERVICE_NAME }}
       wif_provider: ${{ vars.WIF_PROVIDER }}
       wif_sa: ${{ vars.WIF_SA }}
 

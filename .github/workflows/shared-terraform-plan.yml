@@ -9,6 +9,15 @@ on:
       gcp_region:
         required: true
         type: string
+      terraform_state_bucket:
+        required: true
+        type: string
+      service_name:
+        required: true
+        type: string
+      repository:
+        required: true
+        type: string
       wif_provider:
         required: true
         type: string
@@ -51,11 +60,25 @@ jobs:
         working-directory: .infrastructure
         run: |
           cat <<EOF > terraform.tfvars
-          repository_name      = "${{ github.repository }}"
+          repository_name      = "${{ inputs.repository }}"
           project_id           = "${{ inputs.gcp_project_id }}"
           region               = "${{ inputs.gcp_region }}"
           EOF
           terraform fmt terraform.tfvars
+
+      - name: Create backend.tf file
+        id: create-backend
+        working-directory: .infrastructure
+        run: |
+          cat <<EOF > backend.tf
+          terraform {
+            backend "gcs" {
+              bucket = "${{ inputs.terraform_state_bucket}}"
+              prefix = "${{ inputs.service_name}}"
+            }
+          }
+          EOF
+          terraform fmt backend.tf
 
       - name: Terraform Init
         id: init
