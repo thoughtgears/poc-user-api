@@ -130,4 +130,4 @@ jobs:
           echo "DOCKER_REPO=${{ needs.fetch-terraform-outputs.outputs.docker_repo }}" >> $GITHUB_ENV
           
           # Create full image reference with digest
-          echo "IMAGE=${{ needs.fetch-terraform-outputs.outputs.docker_repo }}/${SERVICE_NAME}@${{ needs.docker-build.outputs.digest }}" >> $GITHUB_ENV
+          echo "IMAGE=${{ needs.fetch-terraform-outputs.outputs.docker_repo }}/${{ env.SERVICE_NAME }}@${{ needs.docker-build.outputs.digest }}" >> $GITHUB_ENV
