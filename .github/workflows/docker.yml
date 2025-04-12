@@ -114,6 +114,9 @@ jobs:
     needs: [docker-build, fetch-terraform-outputs]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
       - name: Use Docker image digest
         run: |
           # Get service name
@@ -128,6 +131,3 @@ jobs:
           
           # Create full image reference with digest
           echo "IMAGE=${{ needs.fetch-terraform-outputs.outputs.docker_repo }}/${SERVICE_NAME}@${{ needs.docker-build.outputs.digest }}" >> $GITHUB_ENV
-          
-          # Debug output
-          echo "Full image reference: ${{ needs.fetch-terraform-outputs.outputs.docker_repo }}/${SERVICE_NAME}@${{ needs.docker-build.outputs.digest }}"
