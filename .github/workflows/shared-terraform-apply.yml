@@ -58,8 +58,8 @@ jobs:
         run: |
           SERVICE_NAME=$(jq -r '.name' package.json)
           REPOSITORY_NAME=$(echo "$GITHUB_REPOSITORY" | cut -d '/' -f 2)
-          echo "service_name=${SERVICE_NAME}" >> $GITHUB_OUTPUT
-          echo "repository_name=${REPOSITORY_NAME}" >> $GITHUB_OUTPUT
+          echo "service_name=${SERVICE_NAME}" >> $GITHUB_ENV
+          echo "repository_name=${REPOSITORY_NAME}" >> $GITHUB_ENV
 
       - name: Download Terraform Plan
         uses: actions/download-artifact@v4
