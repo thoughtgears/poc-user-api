@@ -67,6 +67,7 @@ jobs:
           region               = "${{ inputs.gcp_region }}"
           EOF
           terraform fmt terraform.tfvars
+          cat terraform.tfvars
 
       - name: Create backend.tf file
         id: create-backend
