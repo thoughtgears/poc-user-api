@@ -1,0 +1,29 @@
+name: Docker Build and Push
+
+on:
+  repository_dispatch:
+    types: [terraform-completed]
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Get Docker Repo URL
+        id: get-docker-repo
+        run: |
+          # Access the terraform output from the client payload
+          DOCKER_REPO='${{ github.event.client_payload.terraform_output }}' | jq -r '.artifact_repository_url.value'
+          echo "DOCKER_REPO=${DOCKER_REPO}" >> $GITHUB_ENV
+
+      - name: Build and Push
+        uses: ./.github/workflows/shared-docker-build.yml
+        with:
+          gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
+          gcp_region: ${{ vars.GCP_REGION }}
+          wif_provider: ${{ vars.WIF_PROVIDER }}
+          wif_sa: ${{ vars.WIF_SA }}
+          docker_repo: ${{ env.DOCKER_REPO }}

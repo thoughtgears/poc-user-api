@@ -1,0 +1,98 @@
+name: Shared Docker Build & Push
+
+on:
+  workflow_call:
+    inputs:
+      gcp_project_id:
+        required: true
+        type: string
+      gcp_region:
+        required: true
+        type: string
+      wif_provider:
+        required: true
+        type: string
+      wif_sa:
+        required: true
+        type: string
+      docker_repo:
+        required: true
+        type: string
+      service_name:
+        required: false
+        type: string
+        default: ""
+      dockerfile_path:
+        required: false
+        type: string
+        default: "./Dockerfile"
+      context_path:
+        required: false
+        type: string
+        default: "."
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get Service Name
+        id: get-service
+        if: inputs.service_name == ''
+        run: |
+          if [ -f "package.json" ]; then
+            SERVICE_NAME=$(jq -r '.name' package.json)
+            echo "service_name=${SERVICE_NAME}" >> $GITHUB_OUTPUT
+          else
+            REPOSITORY_NAME=$(echo "$GITHUB_REPOSITORY" | cut -d '/' -f 2)
+            echo "service_name=${REPOSITORY_NAME}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set service name
+        id: set-service-name
+        run: |
+          SERVICE_NAME=${{ inputs.service_name != '' && inputs.service_name || steps.get-service.outputs.service_name }}
+          echo "SERVICE_NAME=$SERVICE_NAME" >> $GITHUB_ENV
+          echo "Service name: $SERVICE_NAME"
+
+      - name: Authenticate with Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: access_token
+          project_id: ${{ inputs.gcp_project_id }}
+          workload_identity_provider: ${{ inputs.wif_provider }}
+          service_account: ${{ inputs.wif_sa }}
+
+      - uses: docker/login-action@v3
+        name: Docker Login
+        id: login-gar
+        with:
+          registry: ${{ inputs.gcp_region }}-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ inputs.docker_repo }}/${{ env.SERVICE_NAME }}
+          tags: |
+            type=sha,format=long,prefix=,suffix=,length=7
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ inputs.context_path }}
+          file: ${{ inputs.dockerfile_path }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
