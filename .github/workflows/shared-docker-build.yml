@@ -31,7 +31,9 @@ on:
         type: string
         default: "."
     outputs:
-      digest: ${{ steps.build-and-push.outputs.digest }}
+      digest:
+        description: "Docker image digest"
+        value: ${{ jobs.build.outputs.digest }}
 
 jobs:
   build:
@@ -40,7 +42,7 @@ jobs:
       contents: read
       id-token: write
     outputs:
-      digest: ${{ steps.build-and-push.outputs.digest }}
+      digest: ${{ steps.build-push.outputs.digest }}
 
     steps:
       - name: Checkout code
@@ -100,3 +102,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
