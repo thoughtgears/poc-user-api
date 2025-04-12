@@ -3,7 +3,7 @@ module "labels" {
 
   module_labels = {
     "module" = "artifact_registry"
-    "repo"   = "poc-user-api"
+    "repo"   = "thoughtgears-modules"
   }
 
   dynamic_labels = {
