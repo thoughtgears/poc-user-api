@@ -30,6 +30,8 @@ on:
         required: false
         type: string
         default: "."
+    outputs:
+      digest: ${{ steps.build-and-push.outputs.digest }}
 
 jobs:
   build:
@@ -37,6 +39,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    outputs:
+      digest: ${{ steps.build-and-push.outputs.digest }}
 
     steps:
       - name: Checkout code
