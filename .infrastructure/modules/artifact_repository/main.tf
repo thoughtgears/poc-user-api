@@ -25,6 +25,7 @@ resource "google_artifact_registry_repository" "this" {
 resource "google_artifact_registry_repository_iam_member" "this" {
   for_each = toset(var.read_permissions)
 
+  project    = google_artifact_registry_repository.this.project
   repository = google_artifact_registry_repository.this.id
   location   = google_artifact_registry_repository.this.location
   role       = "roles/artifactregistry.reader"
@@ -34,6 +35,7 @@ resource "google_artifact_registry_repository_iam_member" "this" {
 resource "google_artifact_registry_repository_iam_member" "push" {
   for_each = toset(var.push_permissions)
 
+  project    = google_artifact_registry_repository.this.project
   repository = google_artifact_registry_repository.this.name
   location   = google_artifact_registry_repository.this.location
   role       = "roles/artifactregistry.createOnPushWriter"
