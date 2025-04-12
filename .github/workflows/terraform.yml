@@ -16,20 +16,15 @@ on:
       - .github/workflows/terraform.yml
       - .github/workflows/shared-terraform-*.yml
 
-env:
-  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-  WIF_PROVIDER: ${{ vars.WIF_PROVIDER }}
-  WIF_SA: ${{ vars.WIF_SA }}
-
 jobs:
   plan:
     uses: ./.github/workflows/shared-terraform-plan.yml
     secrets: inherit
     with:
-      gcp_project_id: ${{ env.GCP_PROJECT_ID }}
-      gcp_region : ${{ vars.GCP_REGION }}
-      wif_provider: ${{ env.WIF_PROVIDER }}
-      wif_sa: ${{ env.WIF_SA }}
+      gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
+      gcp_region: ${{ vars.GCP_REGION }}
+      wif_provider: ${{ vars.WIF_PROVIDER }}
+      wif_sa: ${{ vars.WIF_SA }}
 
   apply:
     needs: plan
@@ -37,7 +32,7 @@ jobs:
     uses: ./.github/workflows/shared-terraform-apply.yml
     secrets: inherit
     with:
-      gcp_project_id: ${{ env.GCP_PROJECT_ID }}
+      gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
       gcp_region: ${{ vars.GCP_REGION }}
-      wif_provider: ${{ env.WIF_PROVIDER }}
-      wif_sa: ${{ env.WIF_SA }}
+      wif_provider: ${{ vars.WIF_PROVIDER }}
+      wif_sa: ${{ vars.WIF_SA }}
