@@ -1,0 +1,38 @@
+name: Cloud Deploy Release
+
+on:
+  workflow_dispatch: # Add this trigger
+    inputs:
+      image_reference:
+        description: 'Full Docker image reference (repo/image@digest)'
+        required: true
+      service_name:
+        description: 'Name of the service being deployed'
+        required: true
+
+jobs:
+  cloud-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4 # Still needed if source field in release requires it
+
+      - uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SA }}
+
+      - name: Set up Cloud Deploy Release
+        id: create-release
+        uses: google-github-actions/create-cloud-deploy-release@v1
+        with:
+          name: ${{ github.event.inputs.service_name }}-release-${{ github.sha }}
+          delivery_pipeline: ${{ github.event.inputs.service_name }}-target-1
+          region: ${{ vars.GCP_REGION }}
+          images: 'app=${{ github.event.inputs.image_reference }}' # Assuming 'app' is the key expected by Cloud Deploy skaffold/config
+          # Skaffold source - adjust if needed. Might need checkout if skaffold.yaml is in repo.
+          # source: '.' # Example if skaffold.yaml is at the root after checkout

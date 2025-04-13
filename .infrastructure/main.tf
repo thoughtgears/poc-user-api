@@ -21,3 +21,10 @@ module "firestore" {
   project_id  = var.project_id
   location_id = var.region
 }
+
+module "cloud_run" {
+  source = "./modules/cloud_run"
+
+  project_id = var.project_id
+  name       = "poc-user-api"
+}

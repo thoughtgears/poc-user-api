@@ -15,6 +15,7 @@ COPY package.json bun.lock /temp/prod/
 RUN cd /temp/prod && bun install --frozen-lockfile --production
 
 ## PRERELEASE STAGE
+# Runs tests, linters, and typecheckers
 FROM base AS prerelease
 
 COPY --from=install /temp/dev/node_modules node_modules
@@ -34,5 +35,5 @@ COPY --from=prerelease /usr/src/app/package.json .
 
 # run the app
 USER bun
-EXPOSE 3000/tcp
+EXPOSE 8080/tcp
 ENTRYPOINT [ "bun", "start" ]

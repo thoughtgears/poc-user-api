@@ -9,6 +9,9 @@ on:
       gcp_region:
         required: true
         type: string
+      gcp_project_number:
+        required: true
+        type: string
       terraform_state_bucket:
         required: true
         type: string
@@ -64,6 +67,7 @@ jobs:
           cat <<EOF > terraform.tfvars
           repository_name      = "${{ env.repository_name }}"
           project_id           = "${{ inputs.gcp_project_id }}"
+          project_number       = "${{ inputs.gcp_project_number }}"
           region               = "${{ inputs.gcp_region }}"
           EOF
           terraform fmt terraform.tfvars

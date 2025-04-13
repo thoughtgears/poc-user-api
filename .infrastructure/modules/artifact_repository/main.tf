@@ -1,3 +1,18 @@
+locals {
+  service_apis = [
+    "artifactregistry.googleapis.com"
+  ]
+}
+
+resource "google_project_service" "this" {
+  for_each = toset(local.service_apis)
+
+  project                    = var.project_id
+  service                    = each.key
+  disable_dependent_services = false
+  disable_on_destroy         = false
+}
+
 module "labels" {
   source = "../labels"
 
@@ -20,6 +35,8 @@ resource "google_artifact_registry_repository" "this" {
   location      = var.location_id
 
   labels = module.labels.all
+
+  depends_on = [google_project_service.this["artifactregistry.googleapis.com"]]
 }
 
 resource "google_artifact_registry_repository_iam_member" "this" {

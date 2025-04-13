@@ -1,0 +1,29 @@
+name: Cloud Run Release
+
+on:
+  workflow_dispatch: # Add this trigger
+    inputs:
+      image_reference:
+        description: 'Full Docker image reference (repo/image@digest)'
+        required: true
+      service_name:
+        description: 'Name of the service being deployed'
+        required: true
+      gcp_project_id:
+        description: 'GCP Project ID'
+        required: true
+      gcp_region:
+        description: 'GCP Region'
+        required: true
+      wif_provider:
+        description: 'Workload Identity Provider'
+        required: true
+      wif_sa:
+        description: 'Workload Identity Service Account'
+        required: true
+      git_short_sha:
+        description: 'Short SHA of the commit'
+        required: true
+
+jobs:
+
