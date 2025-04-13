@@ -7,6 +7,8 @@
     "dev": "bun run src/index.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "typecheck": "bunx tsc --noEmit",
+    "test": "bun test",
     "start": "bun run src/index.ts"
   },
   "devDependencies": {
