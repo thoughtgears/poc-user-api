@@ -27,7 +27,7 @@ jobs:
     with:
       gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
       gcp_region: ${{ vars.GCP_REGION }}
-      gcp_project_number: ${ vars.GCP_PROJECT_NUMBER }}
+      gcp_project_number: ${{ vars.GCP_PROJECT_NUMBER }}
       terraform_state_bucket: ${{ vars.TERRAFORM_STATE_BUCKET }}
       wif_provider: ${{ vars.WIF_PROVIDER }}
       wif_sa: ${{ vars.WIF_SA }}
