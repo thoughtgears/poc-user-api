@@ -24,6 +24,63 @@ on:
       git_short_sha:
         description: 'Short SHA of the commit'
         required: true
+      env_variables:
+        description: 'Comma-separated list of environment variables (key=value)'
+        required: false
+        default: ''
+      secret_variables:
+        description: 'Comma-separated list of secrets (key=secret_name:version)'
+        required: false
+        default: ''
+      service_account:
+        description: 'Service account to run the Cloud Run service'
+        required: false
+        default: ''
 
 jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Authenticate with Google Cloud
+        id: gcp-auth
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ inputs.gcp_project_id }}
+          workload_identity_provider: ${{ inputs.wif_provider }}
+          service_account: ${{ inputs.wif_sa }}
+
+      - name: Generate Cloud Run Flags
+        id: generate_flags # Give step an ID to reference its outputs
+        run: |
+          # Start with flags that are always needed
+          FLAGS="--no-allow-unauthenticated" # Example static flag
+
+          SERVICE_ACCOUNT_INPUT="${{ inputs.service_account }}"
+          if [[ -n "$SERVICE_ACCOUNT_INPUT" ]]; then
+            FLAGS="$FLAGS --service-account=$SERVICE_ACCOUNT_INPUT"
+            echo "Added --service-account flag."
+          fi
+          
+           echo "flags_output=$FLAGS" >> $GITHUB_OUTPUT
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ inputs.service_name }}
+          image: ${{ inputs.image_reference }}
+          region: ${{ inputs.gcp_region }}
+          project_id: ${{ inputs.gcp_project_id }}
+          tag: ${{ inputs.git_short_sha }}
+          env_vars: ${{ inputs.env_variables }}
+          secrets: ${{ inputs.secret_variables }}
+          flags: ${{ steps.generate_flags.outputs.flags_output }}
 

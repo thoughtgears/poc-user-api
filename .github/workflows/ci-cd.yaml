@@ -79,4 +79,19 @@ jobs:
       docker_repo: ${{ needs.parse-terraform-output.outputs.docker_repo }}
 
 
+  cloud-run-deploy:
+    needs: [init, docker-build, parse-terraform-output]
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/shared-cloud-run-deploy.yml
+    with:
+      gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
+      gcp_region: ${{ vars.GCP_REGION }}
+      wif_provider: ${{ vars.WIF_PROVIDER }}
+      wif_sa: ${{ vars.WIF_SA }}
+      service_name: ${{ needs.init.outputs.service_name }}
+      git_short_sha: ${{ needs.init.outputs.git_short_sha }}
+      image_reference: ${{ needs.parse-terraform-output.outputs.docker_repo }}@${{ needs.docker-build.outputs.image_digest }}
+      service_account: ${{ needs.parse-terraform-output.outputs.run_sa }}
+
+
 
