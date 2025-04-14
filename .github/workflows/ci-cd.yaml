@@ -90,7 +90,7 @@ jobs:
       wif_sa: ${{ vars.WIF_SA }}
       service_name: ${{ needs.init.outputs.service_name }}
       git_short_sha: ${{ needs.init.outputs.git_short_sha }}
-      image_reference: ${{ needs.parse-terraform-output.outputs.docker_repo }}@${{ needs.docker-build.outputs.digest }}
+      image_reference: ${{ needs.parse-terraform-output.outputs.docker_repo }}/${{ needs.init.outputs.service_name }}@${{ needs.docker-build.outputs.digest }}
       service_account: ${{ needs.parse-terraform-output.outputs.run_sa }}
 
 
