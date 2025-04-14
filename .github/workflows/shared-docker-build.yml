@@ -19,9 +19,8 @@ on:
         required: true
         type: string
       service_name:
-        required: false
+        required: true
         type: string
-        default: ""
       dockerfile_path:
         required: false
         type: string
@@ -48,25 +47,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Get Service Name
-        id: get-service
-        if: inputs.service_name == ''
-        run: |
-          if [ -f "package.json" ]; then
-            SERVICE_NAME=$(jq -r '.name' package.json)
-            echo "service_name=${SERVICE_NAME}" >> $GITHUB_OUTPUT
-          else
-            REPOSITORY_NAME=$(echo "$GITHUB_REPOSITORY" | cut -d '/' -f 2)
-            echo "service_name=${REPOSITORY_NAME}" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Set service name
-        id: set-service-name
-        run: |
-          SERVICE_NAME=${{ inputs.service_name != '' && inputs.service_name || steps.get-service.outputs.service_name }}
-          echo "SERVICE_NAME=$SERVICE_NAME" >> $GITHUB_ENV
-          echo "Service name: $SERVICE_NAME"
-
       - name: Authenticate with Google Cloud
         id: auth
         uses: google-github-actions/auth@v2
@@ -88,7 +68,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ inputs.docker_repo }}/${{ env.SERVICE_NAME }}
+          images: ${{ inputs.docker_repo }}/${{ inputs.service_name }}
           tags: |
             type=sha,format=long,prefix=,suffix=,length=7
             type=raw,value=latest,enable={{is_default_branch}}

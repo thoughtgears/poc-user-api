@@ -12,6 +12,12 @@ on:
       repository_owner:
         description: "Repository owner"
         value: ${{ jobs.init.outputs.repository_owner }}
+      commit_sha:
+        description: "Full commit SHA"
+        value: ${{ jobs.init.outputs.full_sha }}
+      commit_short_sha:
+        description: "Short commit SHA"
+        value: ${{ jobs.init.outputs.short_sha }}
 
 jobs:
   init:
@@ -21,6 +27,8 @@ jobs:
       service_name: ${{ steps.get-service.outputs.service_name }}
       repository_name: ${{ steps.get-repo-info.outputs.repository_name }}
       repository_owner: ${{ steps.get-repo-info.outputs.repository_owner }}
+      full_sha: ${{ steps.get-git-sha.outputs.full_sha }}
+      short_sha: ${{ steps.get-git-sha.outputs.short_sha }}
 
     permissions:
       contents: read
@@ -44,3 +52,11 @@ jobs:
           REPOSITORY_OWNER=$(echo "$GITHUB_REPOSITORY" | cut -d '/' -f 1)
           echo "repository_name=${REPOSITORY_NAME}" >> $GITHUB_OUTPUT
           echo "repository_owner=${REPOSITORY_OWNER}" >> $GITHUB_OUTPUT
+
+      - name: Get Git SHA
+        id: get-git-sha
+        run: |
+          FULL_SHA="${{ github.sha }}"
+          SHORT_SHA="${FULL_SHA:0:7}"
+          echo "full_sha=${FULL_SHA}" >> $GITHUB_OUTPUT
+          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT

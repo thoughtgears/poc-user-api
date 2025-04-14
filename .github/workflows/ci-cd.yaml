@@ -12,7 +12,7 @@ jobs:
   init:
     uses: ./.github/workflows/shared-init.yml
 
-  plan:
+  terraform-plan:
     needs: init
     uses: ./.github/workflows/shared-terraform-plan.yml
     secrets: inherit
@@ -25,8 +25,8 @@ jobs:
       wif_provider: ${{ vars.WIF_PROVIDER }}
       wif_sa: ${{ vars.WIF_SA }}
 
-  apply:
-    needs: [plan, init]
+  terraform-apply:
+    needs: [terraform-plan, init]
     if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/shared-terraform-apply.yml
     secrets: inherit
@@ -39,24 +39,44 @@ jobs:
       wif_provider: ${{ vars.WIF_PROVIDER }}
       wif_sa: ${{ vars.WIF_SA }}
 
-
-  use-output:
-    name: Use Terraform Apply Output
+  parse-terraform-output:
+    name: Parse Terraform Output
     runs-on: ubuntu-latest
-    needs: apply
-    if: needs.apply.result == 'success'
+    needs: terraform-apply
+    if: needs.terraform-apply.result == 'success'
+    outputs:
+      docker_repo: ${{ steps.parser.outputs.docker_repo_output }} # Map job output to step output
+      run_sa: ${{ steps.parser.outputs.run_sa_output }}
 
     steps:
-      - name: Display Raw JSON Output
+      - name: Parse Terraform Output
+        id: parser
         run: |
-          echo "Raw JSON Output from Terraform Apply:"
-          echo "${{ needs.apply.outputs.terraform_output }}"
+          JSON_DATA='${{ needs.terraform-apply.outputs.terraform_output }}'
+          if [[ -z "$JSON_DATA" || "$JSON_DATA" == "{}" ]]; then
+            echo "Error: Terraform output JSON is empty or missing."
+            # Set empty outputs or fail the job if required
+            # echo "docker_repo_output=" >> $GITHUB_OUTPUT
+            # echo "run_sa_output=" >> $GITHUB_OUTPUT
+            exit 1 
+          else
+            docker_repo=$(echo "$JSON_DATA" | jq -r '.artifact_repository_url.value // empty')
+            run_service_account=$(echo "$JSON_DATA" | jq -r '.run_service_account.value // empty')
+  
+            echo "docker_repo_output=${docker_repo}" >> $GITHUB_OUTPUT
+            echo "run_sa_output=${run_service_account}" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Use Specific Value from JSON Output (using fromJSON)
-        # Example: Access a specific output variable named 'instance_ip_address'
-        # Adjust the '.instance_ip_address' part based on your actual Terraform output structure
-        run: |
-          JSON_DATA='${{ needs.apply.outputs.terraform_output }}'
-          docker_repo=$(echo "$JSON_DATA" | jq -r '.artifact_repository_url.value')
-          echo "Extracted docker repo: $docker_repo"
+  docker-build:
+    needs: [init, parse-terraform-output]
+    uses: ./.github/workflows/shared-docker-build.yml
+    with:
+      gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
+      gcp_region: ${{ vars.GCP_REGION }}
+      wif_provider: ${{ vars.WIF_PROVIDER }}
+      wif_sa: ${{ vars.WIF_SA }}
+      service_name: ${{ needs.init.outputs.service_name }}
+      docker_repo: ${{ needs.parse-terraform-output.outputs.docker_repo }}
+
+
 
