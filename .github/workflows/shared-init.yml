@@ -1,0 +1,40 @@
+name: Init
+
+on:
+  workflow_call:
+    outputs:
+      service_name:
+        description: "Service name"
+        value: ${{ jobs.apply.outputs.apply_json }}
+
+    jobs:
+      init:
+        name: Init
+        runs-on: ubuntu-latest
+        outputs:
+          service_name: ${{ steps.get-service.outputs.service_name }}
+          repository_name: ${{ steps.get-repo-info.outputs.repository_name }}
+          repository_owner: ${{ steps.get-repo-info.outputs.repository_owner }}
+
+        permissions:
+          contents: read
+          id-token: write
+
+        steps:
+          - name: Checkout Code
+            uses: actions/checkout@v4
+
+
+          - name: Get Service Name
+            id: get-service
+            run: |
+              SERVICE_NAME=$(jq -r '.name' package.json)
+              echo "service_name=${SERVICE_NAME}" >> $GITHUB_OUTPUT
+
+          - name: Get Repository Name and Owner
+            id: get-repo-info
+            run: |
+              REPOSITORY_NAME=$(echo "$GITHUB_REPOSITORY" | cut -d '/' -f 2)
+              REPOSITORY_OWNER=$(echo "$GITHUB_REPOSITORY" | cut -d '/' -f 1)
+              echo "repository_name=${REPOSITORY_NAME}" >> $GITHUB_OUTPUT
+              echo "repository_owner=${REPOSITORY_OWNER}" >> $GITHUB_OUTPUT

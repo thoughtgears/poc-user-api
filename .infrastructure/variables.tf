@@ -17,3 +17,13 @@ variable "repository_name" {
   description = "The name of the github repository"
   type        = string
 }
+
+variable "repository_owner" {
+  description = "The owner of the github repository"
+  type        = string
+}
+
+variable "service_name" {
+  description = "The name of the service service"
+  type        = string
+}

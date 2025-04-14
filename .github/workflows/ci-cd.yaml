@@ -1,0 +1,69 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '*.md'
+      - '.gitignore'
+      - '.dockerignore'
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '*.md'
+      - '.gitignore'
+      - '.dockerignore'
+
+
+jobs:
+  init:
+    uses: ./.github/workflows/shared-init.yml
+
+  plan:
+    if: github.event == 'pull_request' || (github.event == 'push' &&  github.ref == 'refs/heads/main')
+    uses: ./.github/workflows/shared-terraform-plan.yml
+    secrets: inherit
+    with:
+      gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
+      gcp_region: ${{ vars.GCP_REGION }}
+      gcp_project_number: ${{ vars.GCP_PROJECT_NUMBER }}
+      terraform_state_bucket: ${{ vars.TERRAFORM_STATE_BUCKET }}
+      wif_provider: ${{ vars.WIF_PROVIDER }}
+      wif_sa: ${{ vars.WIF_SA }}
+
+  apply:
+    needs: plan
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/shared-terraform-apply.yml
+    secrets: inherit
+    with:
+      gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
+      gcp_region: ${{ vars.GCP_REGION }}
+      gcp_project_number: ${{ vars.GCP_PROJECT_NUMBER }}
+      terraform_state_bucket: ${{ vars.TERRAFORM_STATE_BUCKET }}
+      wif_provider: ${{ vars.WIF_PROVIDER }}
+      wif_sa: ${{ vars.WIF_SA }}
+
+
+  use-output:
+    name: Use Terraform Apply Output
+    runs-on: ubuntu-latest
+    needs: apply
+    if: needs.apply.result == 'success'
+
+    steps:
+      - name: Display Raw JSON Output
+        run: |
+          echo "Raw JSON Output from Terraform Apply:"
+          echo "${{ needs.apply.outputs.terraform_apply_output }}"
+
+      - name: Use Specific Value from JSON Output (using fromJSON)
+        # Example: Access a specific output variable named 'instance_ip_address'
+        # Adjust the '.instance_ip_address' part based on your actual Terraform output structure
+        run: |
+          JSON_DATA='${{ needs.apply.outputs.terraform_apply_output }}'
+          docker_repo=$(echo "$JSON_DATA" | jq -r '.artifact_repository_url.value')
+          echo "Extracted docker repo: $docker_repo"
+

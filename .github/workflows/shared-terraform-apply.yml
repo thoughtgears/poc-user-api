@@ -24,7 +24,7 @@ on:
     outputs:
       apply_result:
         description: "Results from terraform apply in JSON format"
-        value: ${{ jobs.apply.outputs.apply_json }}
+        value: ${{ jobs.apply.outputs.output_json }}
 
 
 jobs:
@@ -32,7 +32,7 @@ jobs:
     name: Terraform Apply
     runs-on: ubuntu-latest
     outputs:
-      apply_json: ${{ steps.parse_output.outputs.apply_json }}
+      apply_json: ${{ steps.parse_output.outputs.output_json }}
 
     permissions:
       contents: read
@@ -105,16 +105,16 @@ jobs:
         working-directory: .infrastructure
         run: |
           terraform apply tf.plan
-          terraform output -json > apply_output.json
+          terraform output -json > output.json
 
       - name: Parse Terraform Output
         id: parse_output
+        shell: bash
         working-directory: .infrastructure
         run: |
-          if [ -f apply_output.json ]; then
-            # Escape newlines and quotes for GitHub Actions
-            APPLY_JSON=$(cat apply_output.json | jq -c .)
-            echo "apply_json=${APPLY_JSON}" >> $GITHUB_OUTPUT
+          if [ -f output.json ]; then
+            OUTPUT_JSON=$(cat output.json | jq -c .)
+            echo "output_json=${OUTPUT_JSON}" >> $GITHUB_OUTPUT
           else
-            echo "apply_json={}" >> $GITHUB_OUTPUT
+            echo "output_json={}" >> $GITHUB_OUTPUT
           fi
