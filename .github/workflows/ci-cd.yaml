@@ -13,6 +13,7 @@ jobs:
     uses: ./.github/workflows/shared-init.yml
 
   plan:
+    needs: init
     uses: ./.github/workflows/shared-terraform-plan.yml
     secrets: inherit
     with:
@@ -20,11 +21,12 @@ jobs:
       gcp_region: ${{ vars.GCP_REGION }}
       gcp_project_number: ${{ vars.GCP_PROJECT_NUMBER }}
       terraform_state_bucket: ${{ vars.TERRAFORM_STATE_BUCKET }}
+      service_name: ${{ needs.init.outputs.service_name }}
       wif_provider: ${{ vars.WIF_PROVIDER }}
       wif_sa: ${{ vars.WIF_SA }}
 
   apply:
-    needs: plan
+    needs: [plan, init]
     if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/shared-terraform-apply.yml
     secrets: inherit
@@ -33,6 +35,7 @@ jobs:
       gcp_region: ${{ vars.GCP_REGION }}
       gcp_project_number: ${{ vars.GCP_PROJECT_NUMBER }}
       terraform_state_bucket: ${{ vars.TERRAFORM_STATE_BUCKET }}
+      service_name: ${{ needs.init.outputs.service_name }}
       wif_provider: ${{ vars.WIF_PROVIDER }}
       wif_sa: ${{ vars.WIF_SA }}
 
@@ -47,13 +50,13 @@ jobs:
       - name: Display Raw JSON Output
         run: |
           echo "Raw JSON Output from Terraform Apply:"
-          echo "${{ needs.apply.outputs.terraform_apply_output }}"
+          echo "${{ needs.apply.outputs.terraform_output }}"
 
       - name: Use Specific Value from JSON Output (using fromJSON)
         # Example: Access a specific output variable named 'instance_ip_address'
         # Adjust the '.instance_ip_address' part based on your actual Terraform output structure
         run: |
-          JSON_DATA='${{ needs.apply.outputs.terraform_apply_output }}'
+          JSON_DATA='${{ needs.apply.outputs.terraform_output }}'
           docker_repo=$(echo "$JSON_DATA" | jq -r '.artifact_repository_url.value')
           echo "Extracted docker repo: $docker_repo"
 

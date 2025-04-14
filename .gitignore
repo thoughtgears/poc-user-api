@@ -7,3 +7,4 @@
 **/.terraform.locl.hcl
 **/terraform.tfvars
 **/backend.tf
+.infrastructure/output.json

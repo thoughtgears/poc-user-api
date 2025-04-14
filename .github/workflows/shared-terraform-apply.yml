@@ -15,6 +15,9 @@ on:
       terraform_state_bucket:
         required: true
         type: string
+      service_name:
+        required: true
+        type: string
       wif_provider:
         required: true
         type: string
@@ -22,9 +25,9 @@ on:
         required: true
         type: string
     outputs:
-      apply_result:
+      terraform_output:
         description: "Results from terraform apply in JSON format"
-        value: ${{ jobs.apply.outputs.output_json }}
+        value: ${{ jobs.apply.outputs.terraform_output }}
 
 
 jobs:
@@ -32,7 +35,7 @@ jobs:
     name: Terraform Apply
     runs-on: ubuntu-latest
     outputs:
-      apply_json: ${{ steps.parse_output.outputs.output_json }}
+      terraform_output: ${{ steps.parse_output.outputs.output_json }}
 
     permissions:
       contents: read
@@ -55,15 +58,6 @@ jobs:
         with:
           terraform_version: "1.11.4"
 
-      - name: Get Service and Repository Name
-        id: get-service-repo
-        working-directory: .
-        run: |
-          SERVICE_NAME=$(jq -r '.name' package.json)
-          REPOSITORY_NAME=$(echo "$GITHUB_REPOSITORY" | cut -d '/' -f 2)
-          echo "service_name=${SERVICE_NAME}" >> $GITHUB_ENV
-          echo "repository_name=${REPOSITORY_NAME}" >> $GITHUB_ENV
-
       - name: Download Terraform Plan
         uses: actions/download-artifact@v4
         with:
@@ -75,7 +69,6 @@ jobs:
         working-directory: .infrastructure
         run: |
           cat <<EOF > terraform.tfvars
-          repository_name      = "${{ env.repository_name }}"
           project_id           = "${{ inputs.gcp_project_id }}"
           project_number       = "${{ inputs.gcp_project_number }}"
           region               = "${{ inputs.gcp_region }}"
@@ -90,7 +83,7 @@ jobs:
           terraform {
             backend "gcs" {
               bucket = "${{ inputs.terraform_state_bucket}}"
-              prefix = "${{ env.service_name}}"
+              prefix = "${{ inputs.service_name}}"
             }
           }
           EOF
@@ -108,13 +101,21 @@ jobs:
           terraform output -json > output.json
 
       - name: Parse Terraform Output
-        id: parse_output
+        id: parse_output # Step ID must match the mapping above
         shell: bash
         working-directory: .infrastructure
         run: |
+          # (your script - consider adding jq install if needed: sudo apt-get update && sudo apt-get install -y jq)
           if [ -f output.json ]; then
-            OUTPUT_JSON=$(cat output.json | jq -c .)
-            echo "output_json=${OUTPUT_JSON}" >> $GITHUB_OUTPUT
+            if jq -e . output.json > /dev/null; then # Validate JSON
+                OUTPUT_JSON=$(cat output.json | jq -c .)
+                echo "Parsed JSON: ${OUTPUT_JSON}" # Add logging
+                echo "output_json=${OUTPUT_JSON}" >> $GITHUB_OUTPUT
+            else
+                echo "Error: output.json is not valid JSON."
+                echo "output_json={}" >> $GITHUB_OUTPUT
+            fi
           else
+            echo "Warning: output.json not found."
             echo "output_json={}" >> $GITHUB_OUTPUT
           fi
