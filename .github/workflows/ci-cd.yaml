@@ -4,25 +4,15 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - '*.md'
-      - '.gitignore'
-      - '.dockerignore'
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - '*.md'
-      - '.gitignore'
-      - '.dockerignore'
-
 
 jobs:
   init:
     uses: ./.github/workflows/shared-init.yml
 
   plan:
-    if: github.event == 'pull_request' || (github.event == 'push' &&  github.ref == 'refs/heads/main')
     uses: ./.github/workflows/shared-terraform-plan.yml
     secrets: inherit
     with:
