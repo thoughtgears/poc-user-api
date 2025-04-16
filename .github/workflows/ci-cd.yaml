@@ -1,97 +1,97 @@
-name: CI/CD Pipeline
-
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-
-jobs:
-  init:
-    uses: ./.github/workflows/shared-init.yml
-
-  terraform-plan:
-    needs: init
-    uses: ./.github/workflows/shared-terraform-plan.yml
-    secrets: inherit
-    with:
-      gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
-      gcp_region: ${{ vars.GCP_REGION }}
-      gcp_project_number: ${{ vars.GCP_PROJECT_NUMBER }}
-      terraform_state_bucket: ${{ vars.TERRAFORM_STATE_BUCKET }}
-      service_name: ${{ needs.init.outputs.service_name }}
-      wif_provider: ${{ vars.WIF_PROVIDER }}
-      wif_sa: ${{ vars.WIF_SA }}
-
-  terraform-apply:
-    needs: [terraform-plan, init]
-    if: github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/shared-terraform-apply.yml
-    secrets: inherit
-    with:
-      gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
-      gcp_region: ${{ vars.GCP_REGION }}
-      gcp_project_number: ${{ vars.GCP_PROJECT_NUMBER }}
-      terraform_state_bucket: ${{ vars.TERRAFORM_STATE_BUCKET }}
-      service_name: ${{ needs.init.outputs.service_name }}
-      wif_provider: ${{ vars.WIF_PROVIDER }}
-      wif_sa: ${{ vars.WIF_SA }}
-
-  parse-terraform-output:
-    name: Parse Terraform Output
-    runs-on: ubuntu-latest
-    needs: terraform-apply
-    if: needs.terraform-apply.result == 'success'
-    outputs:
-      docker_repo: ${{ steps.parser.outputs.docker_repo_output }} # Map job output to step output
-      run_sa: ${{ steps.parser.outputs.run_sa_output }}
-
-    steps:
-      - name: Parse Terraform Output
-        id: parser
-        run: |
-          JSON_DATA='${{ needs.terraform-apply.outputs.terraform_output }}'
-          if [[ -z "$JSON_DATA" || "$JSON_DATA" == "{}" ]]; then
-            echo "Error: Terraform output JSON is empty or missing."
-            # Set empty outputs or fail the job if required
-            # echo "docker_repo_output=" >> $GITHUB_OUTPUT
-            # echo "run_sa_output=" >> $GITHUB_OUTPUT
-            exit 1 
-          else
-            docker_repo=$(echo "$JSON_DATA" | jq -r '.artifact_repository_url.value // empty')
-            run_service_account=$(echo "$JSON_DATA" | jq -r '.run_service_account.value // empty')
-  
-            echo "docker_repo_output=${docker_repo}" >> $GITHUB_OUTPUT
-            echo "run_sa_output=${run_service_account}" >> $GITHUB_OUTPUT
-          fi
-
-  docker-build:
-    needs: [init, parse-terraform-output]
-    uses: ./.github/workflows/shared-docker-build.yml
-    with:
-      gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
-      gcp_region: ${{ vars.GCP_REGION }}
-      wif_provider: ${{ vars.WIF_PROVIDER }}
-      wif_sa: ${{ vars.WIF_SA }}
-      service_name: ${{ needs.init.outputs.service_name }}
-      docker_repo: ${{ needs.parse-terraform-output.outputs.docker_repo }}
-
-
-  cloud-run-deploy:
-    needs: [init, docker-build, parse-terraform-output]
-    if: github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/shared-cloud-run-deploy.yml
-    with:
-      gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
-      gcp_region: ${{ vars.GCP_REGION }}
-      wif_provider: ${{ vars.WIF_PROVIDER }}
-      wif_sa: ${{ vars.WIF_SA }}
-      service_name: ${{ needs.init.outputs.service_name }}
-      git_short_sha: ${{ needs.init.outputs.git_short_sha }}
-      image_reference: ${{ needs.parse-terraform-output.outputs.docker_repo }}/${{ needs.init.outputs.service_name }}@${{ needs.docker-build.outputs.digest }}
-      service_account: ${{ needs.parse-terraform-output.outputs.run_sa }}
-
-
-
+#name: CI/CD Pipeline
+#
+#on:
+#  push:
+#    branches:
+#      - main
+#  pull_request:
+#    branches:
+#      - main
+#
+#jobs:
+#  init:
+#    uses: ./.github/workflows/shared-init.yml
+#
+#  terraform-plan:
+#    needs: init
+#    uses: ./.github/workflows/shared-terraform-plan.yml
+#    secrets: inherit
+#    with:
+#      gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
+#      gcp_region: ${{ vars.GCP_REGION }}
+#      gcp_project_number: ${{ vars.GCP_PROJECT_NUMBER }}
+#      terraform_state_bucket: ${{ vars.TERRAFORM_STATE_BUCKET }}
+#      service_name: ${{ needs.init.outputs.service_name }}
+#      wif_provider: ${{ vars.WIF_PROVIDER }}
+#      wif_sa: ${{ vars.WIF_SA }}
+#
+#  terraform-apply:
+#    needs: [terraform-plan, init]
+#    if: github.ref == 'refs/heads/main'
+#    uses: ./.github/workflows/shared-terraform-apply.yml
+#    secrets: inherit
+#    with:
+#      gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
+#      gcp_region: ${{ vars.GCP_REGION }}
+#      gcp_project_number: ${{ vars.GCP_PROJECT_NUMBER }}
+#      terraform_state_bucket: ${{ vars.TERRAFORM_STATE_BUCKET }}
+#      service_name: ${{ needs.init.outputs.service_name }}
+#      wif_provider: ${{ vars.WIF_PROVIDER }}
+#      wif_sa: ${{ vars.WIF_SA }}
+#
+#  parse-terraform-output:
+#    name: Parse Terraform Output
+#    runs-on: ubuntu-latest
+#    needs: terraform-apply
+#    if: needs.terraform-apply.result == 'success'
+#    outputs:
+#      docker_repo: ${{ steps.parser.outputs.docker_repo_output }} # Map job output to step output
+#      run_sa: ${{ steps.parser.outputs.run_sa_output }}
+#
+#    steps:
+#      - name: Parse Terraform Output
+#        id: parser
+#        run: |
+#          JSON_DATA='${{ needs.terraform-apply.outputs.terraform_output }}'
+#          if [[ -z "$JSON_DATA" || "$JSON_DATA" == "{}" ]]; then
+#            echo "Error: Terraform output JSON is empty or missing."
+#            # Set empty outputs or fail the job if required
+#            # echo "docker_repo_output=" >> $GITHUB_OUTPUT
+#            # echo "run_sa_output=" >> $GITHUB_OUTPUT
+#            exit 1
+#          else
+#            docker_repo=$(echo "$JSON_DATA" | jq -r '.artifact_repository_url.value // empty')
+#            run_service_account=$(echo "$JSON_DATA" | jq -r '.run_service_account.value // empty')
+#
+#            echo "docker_repo_output=${docker_repo}" >> $GITHUB_OUTPUT
+#            echo "run_sa_output=${run_service_account}" >> $GITHUB_OUTPUT
+#          fi
+#
+#  docker-build:
+#    needs: [init, parse-terraform-output]
+#    uses: ./.github/workflows/shared-docker-build.yml
+#    with:
+#      gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
+#      gcp_region: ${{ vars.GCP_REGION }}
+#      wif_provider: ${{ vars.WIF_PROVIDER }}
+#      wif_sa: ${{ vars.WIF_SA }}
+#      service_name: ${{ needs.init.outputs.service_name }}
+#      docker_repo: ${{ needs.parse-terraform-output.outputs.docker_repo }}
+#
+#
+#  cloud-run-deploy:
+#    needs: [init, docker-build, parse-terraform-output]
+#    if: github.ref == 'refs/heads/main'
+#    uses: ./.github/workflows/shared-cloud-run-deploy.yml
+#    with:
+#      gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
+#      gcp_region: ${{ vars.GCP_REGION }}
+#      wif_provider: ${{ vars.WIF_PROVIDER }}
+#      wif_sa: ${{ vars.WIF_SA }}
+#      service_name: ${{ needs.init.outputs.service_name }}
+#      git_short_sha: ${{ needs.init.outputs.git_short_sha }}
+#      image_reference: ${{ needs.parse-terraform-output.outputs.docker_repo }}/${{ needs.init.outputs.service_name }}@${{ needs.docker-build.outputs.digest }}
+#      service_account: ${{ needs.parse-terraform-output.outputs.run_sa }}
+#
+#
+#
